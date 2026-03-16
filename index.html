@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripleMind — Multi-Model Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --surface: #111115;
+    --surface-2: #18181d;
+    --border: #222228;
+    --border-light: #2a2a32;
+    --text: #e8e8ed;
+    --text-dim: #8888a0;
+    --text-muted: #55556a;
+
+    --model-1: #ff6b4a;
+    --model-1-bg: rgba(255, 107, 74, 0.06);
+    --model-1-border: rgba(255, 107, 74, 0.15);
+
+    --model-2: #4adbff;
+    --model-2-bg: rgba(74, 219, 255, 0.06);
+    --model-2-border: rgba(74, 219, 255, 0.15);
+
+    --model-3: #c084fc;
+    --model-3-bg: rgba(192, 132, 252, 0.06);
+    --model-3-border: rgba(192, 132, 252, 0.15);
+
+    --user-bg: rgba(255, 255, 255, 0.04);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--model-1), var(--model-2), var(--model-3));
+    border-radius: 8px;
+    position: relative;
+  }
+  .logo-icon::after {
+    content: '⬡';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: white;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  }
+
+  .logo h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .logo h1 span {
+    color: var(--text-dim);
+    font-weight: 400;
+    font-size: 13px;
+    margin-left: 8px;
+  }
+
+  .settings-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .settings-btn:hover {
+    border-color: var(--border-light);
+    color: var(--text);
+  }
+
+  /* ── Model Labels Bar ── */
+  .model-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .model-label {
+    padding: 10px 20px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  .model-label .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .model-label:nth-child(1) .dot { background: var(--model-1); box-shadow: 0 0 8px var(--model-1); }
+  .model-label:nth-child(2) .dot { background: var(--model-2); box-shadow: 0 0 8px var(--model-2); }
+  .model-label:nth-child(3) .dot { background: var(--model-3); box-shadow: 0 0 8px var(--model-3); }
+
+  .model-label .model-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .model-label .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #2ecc71;
+    margin-left: 6px;
+    animation: pulse-status 2s infinite;
+  }
+
+  @keyframes pulse-status {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Main Content ── */
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .column {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+  /* ── Messages ── */
+  .msg {
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.65;
+    animation: msg-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    word-break: break-word;
+  }
+
+  @keyframes msg-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user {
+    background: var(--user-bg);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .msg.user::before {
+    content: 'You';
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .column:nth-child(1) .msg.assistant {
+    background: var(--model-1-bg);
+    border: 1px solid var(--model-1-border);
+  }
+  .column:nth-child(2) .msg.assistant {
+    background: var(--model-2-bg);
+    border: 1px solid var(--model-2-border);
+  }
+  .column:nth-child(3) .msg.assistant {
+    background: var(--model-3-bg);
+    border: 1px solid var(--model-3-border);
+  }
+
+  .msg.assistant::before {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .column:nth-child(1) .msg.assistant::before { content: 'Model A'; color: var(--model-1); }
+  .column:nth-child(2) .msg.assistant::before { content: 'Model B'; color: var(--model-2); }
+  .column:nth-child(3) .msg.assistant::before { content: 'Model C'; color: var(--model-3); }
+
+  /* Typing indicator */
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    animation: msg-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .column:nth-child(1) .typing { background: var(--model-1-bg); border: 1px solid var(--model-1-border); }
+  .column:nth-child(2) .typing { background: var(--model-2-bg); border: 1px solid var(--model-2-border); }
+  .column:nth-child(3) .typing { background: var(--model-3-bg); border: 1px solid var(--model-3-border); }
+
+  .typing span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite;
+  }
+  .column:nth-child(1) .typing span { background: var(--model-1); }
+  .column:nth-child(2) .typing span { background: var(--model-2); }
+  .column:nth-child(3) .typing span { background: var(--model-3); }
+
+  .typing span:nth-child(2) { animation-delay: 0.16s; }
+  .typing span:nth-child(3) { animation-delay: 0.32s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .empty-state p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .empty-state .hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-top: 8px;
+    opacity: 0.6;
+  }
+
+  /* ── Input Bar ── */
+  .input-area {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .input-row textarea {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    resize: none;
+    height: 48px;
+    max-height: 120px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+  .input-row textarea:focus {
+    border-color: var(--border-light);
+  }
+  .input-row textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .send-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius);
+    border: none;
+    background: linear-gradient(135deg, var(--model-1), var(--model-2));
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(255, 107, 74, 0.3);
+  }
+  .send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .input-hint {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Settings Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 560px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .modal .modal-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .model-config {
+    margin-bottom: 20px;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .model-config h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .model-config label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .model-config input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .model-config input:focus { border-color: var(--border-light); }
+  .model-config input::placeholder { color: var(--text-muted); }
+
+  .api-key-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .api-key-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .api-key-section label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .api-key-section input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .api-key-section input:focus { border-color: var(--border-light); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  .btn-cancel, .btn-save {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-cancel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .btn-cancel:hover { color: var(--text); }
+  .btn-save {
+    background: linear-gradient(135deg, var(--model-1), var(--model-2));
+    color: white;
+  }
+  .btn-save:hover { box-shadow: 0 4px 16px rgba(255, 107, 74, 0.3); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .model-bar { grid-template-columns: 1fr; }
+    .column { min-height: 200px; max-height: 33vh; }
+    .model-label .model-id { display: none; }
+  }
+
+  /* ── Code blocks in messages ── */
+  .msg pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin: 8px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .msg code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--surface-2);
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+
+  .msg pre code {
+    background: none;
+    padding: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <h1>TripleMind <span>Multi-Model Chat</span></h1>
+  </div>
+  <button class="settings-btn" onclick="openSettings()">⚙ Settings</button>
+</header>
+
+<div class="model-bar">
+  <div class="model-label">
+    <span class="dot"></span>
+    <span id="label-a">Model A</span>
+    <span class="model-id" id="id-a">not configured</span>
+    <span class="status-dot"></span>
+  </div>
+  <div class="model-label">
+    <span class="dot"></span>
+    <span id="label-b">Model B</span>
+    <span class="model-id" id="id-b">not configured</span>
+    <span class="status-dot"></span>
+  </div>
+  <div class="model-label">
+    <span class="dot"></span>
+    <span id="label-c">Model C</span>
+    <span class="model-id" id="id-c">not configured</span>
+    <span class="status-dot"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="column" id="col-0">
+    <div class="messages" id="msgs-0">
+      <div class="empty-state">
+        <div>
+          <p>Model A 의 응답이 여기에 표시됩니다</p>
+          <p class="hint">⚙ Settings 에서 모델을 설정하세요</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="column" id="col-1">
+    <div class="messages" id="msgs-1">
+      <div class="empty-state">
+        <div>
+          <p>Model B 의 응답이 여기에 표시됩니다</p>
+          <p class="hint">⚙ Settings 에서 모델을 설정하세요</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="column" id="col-2">
+    <div class="messages" id="msgs-2">
+      <div class="empty-state">
+        <div>
+          <p>Model C 의 응답이 여기에 표시됩니다</p>
+          <p class="hint">⚙ Settings 에서 모델을 설정하세요</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-row">
+    <textarea id="user-input" placeholder="메시지를 입력하세요… (Enter 전송, Shift+Enter 줄바꿈)" rows="1"></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
+  </div>
+  <div class="input-hint">3개 모델에 동시 전송 · 응답은 개별 스트리밍</div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>모델 설정</h2>
+    <p class="modal-sub">OpenAI API Key와 fine-tuned 모델 ID를 입력하세요.</p>
+
+    <div class="api-key-section">
+      <h3>🔑 API Key</h3>
+      <label>OpenAI API Key</label>
+      <input type="password" id="cfg-apikey" placeholder="sk-..." />
+    </div>
+
+    <div class="model-config">
+      <h3><span style="color:var(--model-1)">●</span> Model A</h3>
+      <label>Display Name</label>
+      <input type="text" id="cfg-name-0" placeholder="예: GPT-4o Creative" />
+      <label>Model ID</label>
+      <input type="text" id="cfg-model-0" placeholder="예: ft:gpt-4o-mini:my-org::abc123" />
+      <label>System Prompt (선택)</label>
+      <input type="text" id="cfg-sys-0" placeholder="예: You are a helpful assistant." />
+    </div>
+
+    <div class="model-config">
+      <h3><span style="color:var(--model-2)">●</span> Model B</h3>
+      <label>Display Name</label>
+      <input type="text" id="cfg-name-1" placeholder="예: GPT-4o Precise" />
+      <label>Model ID</label>
+      <input type="text" id="cfg-model-1" placeholder="예: ft:gpt-4o-mini:my-org::def456" />
+      <label>System Prompt (선택)</label>
+      <input type="text" id="cfg-sys-1" placeholder="예: You are a precise analyst." />
+    </div>
+
+    <div class="model-config">
+      <h3><span style="color:var(--model-3)">●</span> Model C</h3>
+      <label>Display Name</label>
+      <input type="text" id="cfg-name-2" placeholder="예: GPT-4o Coder" />
+      <label>Model ID</label>
+      <input type="text" id="cfg-model-2" placeholder="예: ft:gpt-4o-mini:my-org::ghi789" />
+      <label>System Prompt (선택)</label>
+      <input type="text" id="cfg-sys-2" placeholder="예: You are an expert coder." />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">취소</button>
+      <button class="btn-save" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+const CONFIG_KEY = 'triplemind_config';
+let config = {
+  apiKey: '',
+  models: [
+    { name: 'Model A', modelId: '', systemPrompt: '' },
+    { name: 'Model B', modelId: '', systemPrompt: '' },
+    { name: 'Model C', modelId: '', systemPrompt: '' },
+  ]
+};
+let conversationHistories = [[], [], []]; // per-model message histories
+let isLoading = false;
+
+// ── Init ──
+function init() {
+  const saved = localStorage.getItem(CONFIG_KEY);
+  if (saved) {
+    try {
+      config = JSON.parse(saved);
+      updateLabels();
+    } catch (e) {}
+  }
+  setupTextarea();
+}
+
+function updateLabels() {
+  const labels = ['label-a', 'label-b', 'label-c'];
+  const ids = ['id-a', 'id-b', 'id-c'];
+  config.models.forEach((m, i) => {
+    document.getElementById(labels[i]).textContent = m.name || `Model ${String.fromCharCode(65+i)}`;
+    document.getElementById(ids[i]).textContent = m.modelId ? m.modelId.slice(0, 24) + '…' : 'not configured';
+  });
+}
+
+// ── Settings ──
+function openSettings() {
+  document.getElementById('cfg-apikey').value = config.apiKey;
+  config.models.forEach((m, i) => {
+    document.getElementById(`cfg-name-${i}`).value = m.name;
+    document.getElementById(`cfg-model-${i}`).value = m.modelId;
+    document.getElementById(`cfg-sys-${i}`).value = m.systemPrompt;
+  });
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function saveSettings() {
+  config.apiKey = document.getElementById('cfg-apikey').value.trim();
+  for (let i = 0; i < 3; i++) {
+    config.models[i] = {
+      name: document.getElementById(`cfg-name-${i}`).value.trim() || `Model ${String.fromCharCode(65+i)}`,
+      modelId: document.getElementById(`cfg-model-${i}`).value.trim(),
+      systemPrompt: document.getElementById(`cfg-sys-${i}`).value.trim(),
+    };
+  }
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  updateLabels();
+  closeSettings();
+}
+
+// ── Textarea ──
+function setupTextarea() {
+  const ta = document.getElementById('user-input');
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  });
+}
+
+// ── Messaging ──
+function clearEmptyStates() {
+  document.querySelectorAll('.empty-state').forEach(el => el.remove());
+}
+
+function addMessage(colIndex, role, text) {
+  const container = document.getElementById(`msgs-${colIndex}`);
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = formatMessage(text);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addTyping(colIndex) {
+  const container = document.getElementById(`msgs-${colIndex}`);
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = `typing-${colIndex}`;
+  div.innerHTML = '<span></span><span></span><span></span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping(colIndex) {
+  const el = document.getElementById(`typing-${colIndex}`);
+  if (el) el.remove();
+}
+
+function formatMessage(text) {
+  // Basic markdown: code blocks, inline code, bold, italic
+  let html = text
+    .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+  return html;
+}
+
+async function sendMessage() {
+  const ta = document.getElementById('user-input');
+  const text = ta.value.trim();
+  if (!text || isLoading) return;
+
+  if (!config.apiKey) {
+    openSettings();
+    return;
+  }
+
+  clearEmptyStates();
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+  ta.value = '';
+  ta.style.height = 'auto';
+
+  // Add user message to all columns
+  for (let i = 0; i < 3; i++) {
+    addMessage(i, 'user', text);
+    conversationHistories[i].push({ role: 'user', content: text });
+  }
+
+  // Fire all 3 requests in parallel
+  const promises = config.models.map((model, i) => {
+    if (!model.modelId) {
+      return Promise.resolve({ index: i, error: '모델 ID가 설정되지 않았습니다. ⚙ Settings에서 설정해주세요.' });
+    }
+    addTyping(i);
+    return callOpenAI(i, model, text);
+  });
+
+  const results = await Promise.allSettled(promises);
+
+  results.forEach((result, i) => {
+    removeTyping(i);
+    if (result.status === 'fulfilled') {
+      const r = result.value;
+      if (r.error) {
+        addMessage(i, 'assistant', `⚠ ${r.error}`);
+      } else {
+        addMessage(i, 'assistant', r.text);
+        conversationHistories[i].push({ role: 'assistant', content: r.text });
+      }
+    } else {
+      addMessage(i, 'assistant', `⚠ 요청 실패: ${result.reason}`);
+    }
+  });
+
+  isLoading = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('user-input').focus();
+}
+
+async function callOpenAI(index, model, userText) {
+  const messages = [];
+
+  if (model.systemPrompt) {
+    messages.push({ role: 'system', content: model.systemPrompt });
+  }
+
+  // Include conversation history for context
+  messages.push(...conversationHistories[index]);
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model.modelId,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { index, error: err.error?.message || `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '(응답 없음)';
+    return { index, text };
+  } catch (e) {
+    return { index, error: e.message };
+  }
+}
+
+// ── Boot ──
+init();
+</script>
+
+</body>
+</html>
