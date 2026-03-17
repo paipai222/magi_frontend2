@@ -326,6 +326,38 @@
   }
   .auto-stop-btn:hover { background: var(--gray-100); }
   .auto-stop-btn.show { display: block; }
+
+  /* ── AGENT SELECTOR ── */
+  .agent-selector {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .agent-selector-label {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--gray-500); margin-right: 4px;
+  }
+  .agent-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: var(--white); color: var(--gray-500);
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .agent-btn:hover { border-color: var(--gray-400); color: var(--black); }
+  .agent-btn.on {
+    background: var(--black); color: var(--white);
+    border-color: var(--black);
+  }
+  .agent-btn.locked {
+    opacity: 0.3; cursor: not-allowed; pointer-events: none;
+  }
+  .agent-select-hint {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em; color: var(--gray-400);
+    text-transform: uppercase; margin-left: 2px;
+  }
 </style>
 </head>
 <body>
@@ -426,6 +458,14 @@
       <textarea class="seed-textarea" id="seedInput"
         placeholder="AI들이 토론할 주제를 입력하세요..." rows="1"></textarea>
     </div>
+    <!-- Agent 선택 -->
+    <div class="agent-selector" id="agentSelector">
+      <span class="agent-selector-label">Agents</span>
+      <button class="agent-btn on" id="chip-0" onclick="toggleAgent(0)">Melchior</button>
+      <button class="agent-btn on" id="chip-1" onclick="toggleAgent(1)">Balthasar</button>
+      <button class="agent-btn" id="chip-2" onclick="toggleAgent(2)">Casper</button>
+      <span class="agent-select-hint" id="agentHint">2 selected</span>
+    </div>
     <div class="auto-btns">
       <button class="auto-stop-btn" id="autoStopBtn" onclick="stopAutoChat()">■ Stop</button>
       <button class="auto-start-btn" id="autoStartBtn" onclick="startAutoChat()">▶ Start Auto</button>
@@ -440,6 +480,29 @@ let isAutoMode      = false;
 let autoStopped     = false;
 let totalAutoRounds = 3;
 let currentRound    = 0;
+
+// ── AGENT SELECTOR ───────────────────────────────
+// 기본값: Melchior(0), Balthasar(1) 선택
+let selectedAgents = [0, 1];
+
+function toggleAgent(idx) {
+  if (selectedAgents.includes(idx)) {
+    selectedAgents = selectedAgents.filter(i => i !== idx);
+  } else {
+    selectedAgents.push(idx);
+    selectedAgents.sort();
+  }
+  updateAgentChips();
+}
+
+function updateAgentChips() {
+  for (let i = 0; i < 3; i++) {
+    const btn = document.getElementById(`chip-${i}`);
+    btn.classList.toggle('on', selectedAgents.includes(i));
+    btn.classList.remove('locked');
+  }
+  document.getElementById('agentHint').textContent = `${selectedAgents.length} selected`;
+}
 
 // ── DARK MODE ────────────────────────────────────
 function toggleDark() {
@@ -548,6 +611,7 @@ function handleKey(e) {
 async function startAutoChat() {
   const seed = document.getElementById('seedInput').value.trim();
   if (!seed) { document.getElementById('seedInput').focus(); return; }
+  if (selectedAgents.length < 1) { alert('최소 1개 agent를 선택하세요.'); return; }
 
   totalAutoRounds = parseInt(document.getElementById('roundsSlider').value);
   autoStopped = false; currentRound = 0;
@@ -556,36 +620,40 @@ async function startAutoChat() {
   document.getElementById('autoStopBtn').classList.add('show');
   document.getElementById('roundBadge').classList.add('show');
 
+  // 선택된 agent만 초기화
   conversations = [[], [], []];
   [0,1,2].forEach(i => { document.getElementById(`msgs-${i}`).innerHTML = ''; });
-  [0,1,2].forEach(i => addSystemMsg(i, `// Auto Chat 시작 — ${totalAutoRounds} rounds`));
+  selectedAgents.forEach(i => addSystemMsg(i, `// Auto Chat 시작 — ${totalAutoRounds} rounds`));
 
-  for (let i = 0; i < 3; i++) {
+  // Seed → 선택된 봇 동시 응답
+  selectedAgents.forEach(i => {
     conversations[i].push({ role: 'user', content: seed });
     addMsg(i, 'user', seed);
-  }
-  await Promise.all([0,1,2].map(i => callBot(i, conversations[i])));
+  });
+  await Promise.all(selectedAgents.map(i => callBot(i, conversations[i])));
   if (autoStopped) { endAutoChat(); return; }
 
+  // 라운드: 각 봇이 나머지 선택된 봇의 최신 답변을 읽고 응답
   for (let round = 0; round < totalAutoRounds; round++) {
     if (autoStopped) break;
     currentRound = round + 1;
     document.getElementById('roundBadge').textContent = `ROUND ${currentRound}/${totalAutoRounds}`;
-    [0,1,2].forEach(i => addSystemMsg(i, `// Round ${currentRound}`));
+    selectedAgents.forEach(i => addSystemMsg(i, `// Round ${currentRound}`));
 
     const latest = [0,1,2].map(i => conversations[i].at(-1)?.content || '');
 
-    const prompts = [
-      `${latest[1]}\n\n${latest[2]}`,
-      `${latest[0]}\n\n${latest[2]}`,
-      `${latest[0]}\n\n${latest[1]}`,
-    ];
+    // 각 봇에게 자신 제외 나머지 선택된 봇들의 발언을 전달
+    const prompts = {};
+    selectedAgents.forEach(i => {
+      const others = selectedAgents.filter(j => j !== i);
+      prompts[i] = others.map(j => latest[j]).join('\n\n');
+    });
 
-    for (let i = 0; i < 3; i++) {
+    selectedAgents.forEach(i => {
       conversations[i].push({ role: 'user', content: prompts[i] });
       addMsg(i, 'user', prompts[i]);
-    }
-    await Promise.all([0,1,2].map(i => callBot(i, conversations[i])));
+    });
+    await Promise.all(selectedAgents.map(i => callBot(i, conversations[i])));
     if (!autoStopped) await sleep(300);
   }
   endAutoChat();
