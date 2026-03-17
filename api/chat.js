@@ -2,14 +2,14 @@
  * /api/chat.js  — Vercel Serverless Function (Node.js)
  *
  * 브라우저는 이 엔드포인트(/api/chat)만 호출합니다.
- * OpenAI API Key는 Vercel 환경변수에만 존재하며, 클라이언트에 절대 노출되지 않습니다.
+ * OpenAI API Key와 모델명은 Vercel 환경변수에만 존재하며, 클라이언트에 절대 노출되지 않습니다.
  *
  * Vercel 대시보드 설정:
  *   Project → Settings → Environment Variables
  *   OPENAI_API_KEY = sk-...
- *   BOT1_SYSTEM    = (선택) Bot-1 시스템 프롬프트
- *   BOT2_SYSTEM    = (선택) Bot-2 시스템 프롬프트
- *   BOT3_SYSTEM    = (선택) Bot-3 시스템 프롬프트
+ *   BOT1_MODEL     = ft:gpt-4o-mini:your-org:model-name:id   (fine-tuned 모델명)
+ *   BOT2_MODEL     = ft:gpt-4o-mini:your-org:model-name:id
+ *   BOT3_MODEL     = ft:gpt-4o-mini:your-org:model-name:id
  */
 
 export default async function handler(req, res) {
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   // ── 환경변수에서 API Key 읽기 (클라이언트에 절대 전달 안 함) ──
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'Server: API key not configured. Vercel 환경변수를 확인하세요.' });
+    return res.status(500).json({ error: 'Server: OPENAI_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인하세요.' });
   }
 
   // ── 요청 파싱 ──
@@ -33,13 +33,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages 배열이 필요합니다.' });
   }
 
-  // ── 봇별 시스템 프롬프트 (환경변수에서 읽기) ──
-  const systemPrompts = [
-    process.env.BOT1_SYSTEM || 'You are a creative and imaginative strategist. Think boldly and suggest novel approaches.',
-    process.env.BOT2_SYSTEM || 'You are a sharp critical analyst. Question assumptions and identify risks.',
-    process.env.BOT3_SYSTEM || 'You are a pragmatic engineer. Focus on feasibility and concrete next steps.',
+  // ── 봇별 모델명 (환경변수에서 읽기 — 클라이언트에 노출 안 됨) ──
+  const botModels = [
+    process.env.BOT1_MODEL || 'gpt-4o',
+    process.env.BOT2_MODEL || 'gpt-4o',
+    process.env.BOT3_MODEL || 'gpt-4o',
   ];
-  const systemPrompt = systemPrompts[botIndex] ?? systemPrompts[0];
+  const model = botModels[botIndex] ?? botModels[0];
+
+  if (!model) {
+    return res.status(500).json({ error: `BOT${botIndex + 1}_MODEL 환경변수가 설정되지 않았습니다.` });
+  }
 
   // ── OpenAI API 호출 ──
   try {
@@ -50,12 +54,9 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,   // ← 키는 여기서만 사용
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model,           // ← fine-tuned 모델명 (환경변수에서만 읽음)
         max_tokens: 1024,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
+        messages,        // ← fine-tuned 모델은 보통 system 프롬프트 불필요
       }),
     });
 
