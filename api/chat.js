@@ -27,24 +27,27 @@ export default async function handler(req, res) {
   ];
   const model = botModels[botIndex] ?? botModels[0];
 
-  // ── [DEBUG] Vercel → Functions → Logs 에서 확인 (해결 후 삭제)
-  console.log('=== [DEBUG] /api/chat called ===');
-  console.log('[DEBUG] botIndex         :', botIndex);
-  console.log('[DEBUG] model selected   :', model);
-  console.log('[DEBUG] BOT1_MODEL env   :', process.env.BOT1_MODEL ? '✅ SET' : '❌ NOT SET');
-  console.log('[DEBUG] BOT2_MODEL env   :', process.env.BOT2_MODEL ? '✅ SET' : '❌ NOT SET');
-  console.log('[DEBUG] BOT3_MODEL env   :', process.env.BOT3_MODEL ? '✅ SET' : '❌ NOT SET');
-  console.log('[DEBUG] messages count   :', messages.length);
-  console.log('[DEBUG] messages payload :', JSON.stringify(messages));
-
   if (!model) {
     return res.status(500).json({ error: `BOT${botIndex + 1}_MODEL 환경변수가 설정되지 않았습니다.` });
   }
+
+  // ── 공통 System Prompt ──
+  // 학습 데이터엔 system이 없었지만, 언어/통화 규칙은 런타임에 주입
+  const SYSTEM_PROMPT = `Always reply in the same language the user writes in.
+If the user writes in Korean, reply in Korean.
+If the user writes in English, reply in English.
+Always express monetary amounts in USD.`;
 
   const MAX_MESSAGES = 4;
   const trimmedMessages = messages.length > MAX_MESSAGES
     ? messages.slice(-MAX_MESSAGES)
     : messages;
+
+  // system prompt를 messages 맨 앞에 주입
+  const fullMessages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...trimmedMessages,
+  ];
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -56,13 +59,12 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model,
         max_tokens: 1024,
-        messages: trimmedMessages,
+        messages: fullMessages,
       }),
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      console.log('[DEBUG] OpenAI error:', response.status, err?.error?.message);
       return res.status(response.status).json({
         error: err?.error?.message || `OpenAI error ${response.status}`,
       });
@@ -70,8 +72,6 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || '';
-
-    console.log('[DEBUG] reply preview  :', reply.slice(0, 150));
 
     return res.status(200).json({ reply });
 
