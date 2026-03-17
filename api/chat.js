@@ -38,15 +38,10 @@ If the user writes in Korean, reply in Korean.
 If the user writes in English, reply in English.
 Always express monetary amounts in USD.`;
 
-  const MAX_MESSAGES = 4;
-  const trimmedMessages = messages.length > MAX_MESSAGES
-    ? messages.slice(-MAX_MESSAGES)
-    : messages;
-
   // system prompt를 messages 맨 앞에 주입
   const fullMessages = [
     { role: 'system', content: SYSTEM_PROMPT },
-    ...trimmedMessages,
+    ...messages,
   ];
 
   try {
