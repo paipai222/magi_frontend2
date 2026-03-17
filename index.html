@@ -3,891 +3,580 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TripleMind — Multi-Model Chat</title>
+<title>TRIAD — Triple AI Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;500;600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0c;
-    --surface: #111115;
-    --surface-2: #18181d;
-    --border: #222228;
-    --border-light: #2a2a32;
-    --text: #e8e8ed;
-    --text-dim: #8888a0;
-    --text-muted: #55556a;
-
-    --model-1: #ff6b4a;
-    --model-1-bg: rgba(255, 107, 74, 0.06);
-    --model-1-border: rgba(255, 107, 74, 0.15);
-
-    --model-2: #4adbff;
-    --model-2-bg: rgba(74, 219, 255, 0.06);
-    --model-2-border: rgba(74, 219, 255, 0.15);
-
-    --model-3: #c084fc;
-    --model-3-bg: rgba(192, 132, 252, 0.06);
-    --model-3-border: rgba(192, 132, 252, 0.15);
-
-    --user-bg: rgba(255, 255, 255, 0.04);
-    --radius: 12px;
-    --radius-sm: 8px;
+    --black: #0a0a0a;
+    --white: #ffffff;
+    --gray-100: #f5f5f5;
+    --gray-200: #e8e8e8;
+    --gray-300: #d0d0d0;
+    --gray-400: #a0a0a0;
+    --gray-500: #6b6b6b;
+    --gray-600: #4a4a4a;
+    --border: #e0e0e0;
+    --font-mono: 'Source Code Pro', monospace;
+    --font-sans: 'Source Sans 3', sans-serif;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Outfit', sans-serif;
-    height: 100dvh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    font-family: var(--font-sans);
+    background: var(--white);
+    color: var(--black);
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 
-  /* ── Header ── */
-  header {
-    padding: 16px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  /* ── TOP NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    background: var(--white);
     border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    background: var(--surface);
-    backdrop-filter: blur(20px);
   }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--black);
   }
-
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, var(--model-1), var(--model-2), var(--model-3));
-    border-radius: 8px;
-    position: relative;
+  .nav-logo span { color: var(--gray-400); }
+  .nav-right { display: flex; align-items: center; gap: 20px; }
+  .nav-tag {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.12em;
+    color: var(--gray-500); text-transform: uppercase;
   }
-  .logo-icon::after {
-    content: '⬡';
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: white;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,.3));
-  }
-
-  .logo h1 {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-  .logo h1 span {
-    color: var(--text-dim);
-    font-weight: 400;
-    font-size: 13px;
-    margin-left: 8px;
-  }
-
-  .settings-btn {
-    background: var(--surface-2);
+  .round-badge {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--gray-500); padding: 3px 7px;
     border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    transition: all 0.2s;
-  }
-  .settings-btn:hover {
-    border-color: var(--border-light);
-    color: var(--text);
-  }
-
-  /* ── Model Labels Bar ── */
-  .model-bar {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  .model-label {
-    padding: 10px 20px;
-    background: var(--surface);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-dim);
-  }
-
-  .model-label .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .model-label:nth-child(1) .dot { background: var(--model-1); box-shadow: 0 0 8px var(--model-1); }
-  .model-label:nth-child(2) .dot { background: var(--model-2); box-shadow: 0 0 8px var(--model-2); }
-  .model-label:nth-child(3) .dot { background: var(--model-3); box-shadow: 0 0 8px var(--model-3); }
-
-  .model-label .model-id {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: auto;
-  }
-
-  .model-label .status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #2ecc71;
-    margin-left: 6px;
-    animation: pulse-status 2s infinite;
-  }
-
-  @keyframes pulse-status {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  /* ── Main Content ── */
-  .main {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .column {
-    background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-light) transparent;
-  }
-  .messages::-webkit-scrollbar { width: 4px; }
-  .messages::-webkit-scrollbar-track { background: transparent; }
-  .messages::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
-
-  /* ── Messages ── */
-  .msg {
-    padding: 14px 16px;
-    border-radius: var(--radius);
-    font-size: 14px;
-    line-height: 1.65;
-    animation: msg-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    word-break: break-word;
-  }
-
-  @keyframes msg-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .msg.user {
-    background: var(--user-bg);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-  .msg.user::before {
-    content: 'You';
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
-
-  .column:nth-child(1) .msg.assistant {
-    background: var(--model-1-bg);
-    border: 1px solid var(--model-1-border);
-  }
-  .column:nth-child(2) .msg.assistant {
-    background: var(--model-2-bg);
-    border: 1px solid var(--model-2-border);
-  }
-  .column:nth-child(3) .msg.assistant {
-    background: var(--model-3-bg);
-    border: 1px solid var(--model-3-border);
-  }
-
-  .msg.assistant::before {
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 6px;
-  }
-  .column:nth-child(1) .msg.assistant::before { content: 'Model A'; color: var(--model-1); }
-  .column:nth-child(2) .msg.assistant::before { content: 'Model B'; color: var(--model-2); }
-  .column:nth-child(3) .msg.assistant::before { content: 'Model C'; color: var(--model-3); }
-
-  /* Typing indicator */
-  .typing {
-    display: flex;
-    gap: 4px;
-    padding: 14px 16px;
-    border-radius: var(--radius);
-    animation: msg-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .column:nth-child(1) .typing { background: var(--model-1-bg); border: 1px solid var(--model-1-border); }
-  .column:nth-child(2) .typing { background: var(--model-2-bg); border: 1px solid var(--model-2-border); }
-  .column:nth-child(3) .typing { background: var(--model-3-bg); border: 1px solid var(--model-3-border); }
-
-  .typing span {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    animation: bounce 1.4s infinite;
-  }
-  .column:nth-child(1) .typing span { background: var(--model-1); }
-  .column:nth-child(2) .typing span { background: var(--model-2); }
-  .column:nth-child(3) .typing span { background: var(--model-3); }
-
-  .typing span:nth-child(2) { animation-delay: 0.16s; }
-  .typing span:nth-child(3) { animation-delay: 0.32s; }
-
-  @keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-6px); opacity: 1; }
-  }
-
-  /* ── Empty State ── */
-  .empty-state {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
-  }
-
-  .empty-state p {
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
-  .empty-state .hint {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    margin-top: 8px;
-    opacity: 0.6;
-  }
-
-  /* ── Input Bar ── */
-  .input-area {
-    padding: 16px 24px 20px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-
-  .input-row {
-    display: flex;
-    gap: 10px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .input-row textarea {
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    font-family: 'Outfit', sans-serif;
-    font-size: 14px;
-    resize: none;
-    height: 48px;
-    max-height: 120px;
-    outline: none;
-    transition: border-color 0.2s;
-    line-height: 1.5;
-  }
-  .input-row textarea:focus {
-    border-color: var(--border-light);
-  }
-  .input-row textarea::placeholder {
-    color: var(--text-muted);
-  }
-
-  .send-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius);
-    border: none;
-    background: linear-gradient(135deg, var(--model-1), var(--model-2));
-    color: white;
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  .send-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 20px rgba(255, 107, 74, 0.3);
-  }
-  .send-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-
-  .input-hint {
-    text-align: center;
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  /* ── Settings Modal ── */
-  .modal-overlay {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(8px);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
   }
-  .modal-overlay.open { display: flex; }
+  .round-badge.show { display: inline-block; }
 
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    width: 560px;
-    max-width: 90vw;
-    max-height: 85vh;
-    overflow-y: auto;
-    animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  /* ── MAIN LAYOUT ── */
+  main {
+    margin-top: 52px;
+    height: calc(100vh - 52px);
+    display: flex; flex-direction: column;
   }
 
-  @keyframes modal-in {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+  /* ── CONTROL BAR ── */
+  .control-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+    flex-shrink: 0;
+  }
+  .mode-info { display: flex; align-items: center; gap: 12px; }
+  .mode-label {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--gray-500);
+  }
+  .mode-value {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--black);
   }
 
-  .modal h2 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 6px;
+  /* Toggle */
+  .toggle-wrap { display: flex; align-items: center; gap: 12px; }
+  .toggle-label {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--gray-500);
+    transition: color 0.2s;
   }
-  .modal .modal-sub {
-    color: var(--text-dim);
-    font-size: 13px;
-    margin-bottom: 24px;
+  .toggle-label.active { color: var(--black); font-weight: 600; }
+  .toggle {
+    position: relative; width: 48px; height: 24px;
+    background: var(--gray-200); border: 1px solid var(--border);
+    cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--black); border-color: var(--black); }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; background: var(--white);
+    transition: transform 0.2s cubic-bezier(.4,0,.2,1);
+  }
+  .toggle.on .toggle-thumb { transform: translateX(24px); }
+
+  .auto-rounds { display: none; align-items: center; gap: 8px; }
+  .auto-rounds.show { display: flex; }
+  .auto-rounds label {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500);
+  }
+  .auto-rounds input[type=range] { width: 80px; accent-color: var(--black); }
+  .auto-rounds .round-val {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--black); min-width: 14px;
   }
 
-  .model-config {
-    margin-bottom: 20px;
-    padding: 16px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--surface-2);
+  /* ── BOT PANELS ── */
+  .panels-area { flex: 1; display: flex; overflow: hidden; }
+  .bot-panel {
+    flex: 1; display: flex; flex-direction: column;
+    border-right: 1px solid var(--border); overflow: hidden;
+  }
+  .bot-panel:last-child { border-right: none; }
+
+  .panel-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; background: var(--white);
+  }
+  .panel-header-left { display: flex; align-items: center; gap: 10px; }
+  .bot-index {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.15em; color: var(--gray-400); text-transform: uppercase;
+  }
+  .bot-name {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--black);
+  }
+  .bot-role {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em; color: var(--gray-400); text-transform: uppercase;
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gray-300); flex-shrink: 0; transition: background 0.3s;
+  }
+  .status-dot.thinking { background: #f59e0b; animation: pulse-dot 1s infinite; }
+  .status-dot.ready { background: #22c55e; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Messages */
+  .messages {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 3px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--gray-300); }
+
+  .msg { display: flex; flex-direction: column; gap: 4px; animation: fadeUp 0.25s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .msg-role {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--gray-400);
+  }
+  .msg-body {
+    font-size: 13px; line-height: 1.65;
+    color: var(--black); font-family: var(--font-sans); font-weight: 300;
+  }
+  .msg.user .msg-role { color: var(--gray-600); }
+  .msg.user .msg-body {
+    background: var(--gray-100); padding: 10px 14px;
+    border-left: 2px solid var(--black); font-weight: 400;
+  }
+  .msg.assistant .msg-body { padding: 10px 14px; border-left: 2px solid var(--border); }
+  .msg.system .msg-body {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.08em; color: var(--gray-500);
+    padding: 6px 0; border: none; background: none;
   }
 
-  .model-config h3 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .thinking-msg .msg-body {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--gray-400); font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.08em;
+    padding: 10px 14px; border-left: 2px solid var(--gray-200);
+  }
+  .dots { display: flex; gap: 3px; }
+  .dots span {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--gray-400); animation: blink 1.2s infinite;
+  }
+  .dots span:nth-child(2){animation-delay:0.2s}
+  .dots span:nth-child(3){animation-delay:0.4s}
+  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+  /* Error msg style */
+  .msg.error .msg-body {
+    color: #dc2626; padding: 10px 14px;
+    border-left: 2px solid #fca5a5;
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.06em; background: #fff5f5;
   }
 
-  .model-config label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-    font-weight: 500;
+  /* ── USER INPUT BAR ── */
+  .global-input-bar {
+    padding: 16px 32px; border-top: 1px solid var(--border);
+    background: var(--white); display: flex; gap: 12px; align-items: flex-end;
+    flex-shrink: 0;
   }
+  .global-input-bar.hidden { display: none; }
+  .global-textarea {
+    flex: 1; min-height: 44px; max-height: 140px; padding: 11px 14px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 300;
+    border: 1px solid var(--border); resize: none; outline: none;
+    transition: border-color 0.15s; line-height: 1.5; background: var(--gray-100);
+  }
+  .global-textarea:focus { border-color: var(--black); background: var(--white); }
+  .send-btn {
+    height: 44px; padding: 0 20px;
+    background: var(--black); color: var(--white);
+    border: none; cursor: pointer;
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    flex-shrink: 0; transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.75; }
+  .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  .model-config input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    outline: none;
-    margin-bottom: 10px;
-    transition: border-color 0.2s;
+  /* ── AUTO MODE BAR ── */
+  .auto-control-bar {
+    padding: 16px 32px; border-top: 1px solid var(--border);
+    background: var(--white); display: flex; align-items: center;
+    justify-content: space-between; flex-shrink: 0;
   }
-  .model-config input:focus { border-color: var(--border-light); }
-  .model-config input::placeholder { color: var(--text-muted); }
-
-  .api-key-section {
-    margin-bottom: 20px;
-    padding: 16px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--surface-2);
+  .auto-control-bar.hidden { display: none; }
+  .seed-input-wrap { display: flex; align-items: center; gap: 10px; }
+  .seed-input-wrap label {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray-500);
   }
-  .api-key-section h3 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
+  .seed-textarea {
+    width: 300px; min-height: 36px; max-height: 80px; padding: 8px 10px;
+    font-family: var(--font-sans); font-size: 12px;
+    border: 1px solid var(--border); resize: none; outline: none;
+    background: var(--gray-100); transition: border-color 0.15s;
   }
-  .api-key-section label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-    font-weight: 500;
+  .seed-textarea:focus { border-color: var(--black); background: var(--white); }
+  .auto-btns { display: flex; gap: 10px; }
+  .auto-start-btn {
+    padding: 10px 24px; background: var(--black); color: var(--white);
+    border: none; cursor: pointer; font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    transition: opacity 0.15s;
   }
-  .api-key-section input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    outline: none;
-    margin-bottom: 10px;
-    transition: border-color 0.2s;
+  .auto-start-btn:hover { opacity: 0.75; }
+  .auto-start-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .auto-stop-btn {
+    padding: 10px 24px; background: var(--white); color: var(--black);
+    border: 1px solid var(--black); cursor: pointer;
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    display: none; transition: background 0.15s;
   }
-  .api-key-section input:focus { border-color: var(--border-light); }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 24px;
-  }
-
-  .btn-cancel, .btn-save {
-    padding: 10px 20px;
-    border-radius: var(--radius-sm);
-    border: none;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-cancel {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-  }
-  .btn-cancel:hover { color: var(--text); }
-  .btn-save {
-    background: linear-gradient(135deg, var(--model-1), var(--model-2));
-    color: white;
-  }
-  .btn-save:hover { box-shadow: 0 4px 16px rgba(255, 107, 74, 0.3); }
-
-  /* ── Responsive ── */
-  @media (max-width: 900px) {
-    .main { grid-template-columns: 1fr; }
-    .model-bar { grid-template-columns: 1fr; }
-    .column { min-height: 200px; max-height: 33vh; }
-    .model-label .model-id { display: none; }
-  }
-
-  /* ── Code blocks in messages ── */
-  .msg pre {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    margin: 8px 0;
-    overflow-x: auto;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-  }
-
-  .msg code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    background: var(--surface-2);
-    padding: 2px 5px;
-    border-radius: 4px;
-  }
-
-  .msg pre code {
-    background: none;
-    padding: 0;
-  }
+  .auto-stop-btn:hover { background: var(--gray-100); }
+  .auto-stop-btn.show { display: block; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">
-    <div class="logo-icon"></div>
-    <h1>TripleMind <span>Multi-Model Chat</span></h1>
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">TRIAD<span> / AI CONSOLE</span></div>
+  <div class="nav-right">
+    <span class="nav-tag" id="modeTag">USER ↔ AI</span>
+    <span class="round-badge" id="roundBadge">ROUND 0</span>
   </div>
-  <button class="settings-btn" onclick="openSettings()">⚙ Settings</button>
-</header>
+</nav>
 
-<div class="model-bar">
-  <div class="model-label">
-    <span class="dot"></span>
-    <span id="label-a">Model A</span>
-    <span class="model-id" id="id-a">not configured</span>
-    <span class="status-dot"></span>
-  </div>
-  <div class="model-label">
-    <span class="dot"></span>
-    <span id="label-b">Model B</span>
-    <span class="model-id" id="id-b">not configured</span>
-    <span class="status-dot"></span>
-  </div>
-  <div class="model-label">
-    <span class="dot"></span>
-    <span id="label-c">Model C</span>
-    <span class="model-id" id="id-c">not configured</span>
-    <span class="status-dot"></span>
-  </div>
-</div>
-
-<div class="main">
-  <div class="column" id="col-0">
-    <div class="messages" id="msgs-0">
-      <div class="empty-state">
-        <div>
-          <p>Model A 의 응답이 여기에 표시됩니다</p>
-          <p class="hint">⚙ Settings 에서 모델을 설정하세요</p>
-        </div>
+<!-- MAIN -->
+<main>
+  <!-- CONTROL BAR -->
+  <div class="control-bar">
+    <div class="mode-info">
+      <span class="mode-label">Mode</span>
+      <span class="mode-value" id="modeValueLabel">User Chat</span>
+    </div>
+    <div class="toggle-wrap">
+      <span class="toggle-label active" id="label-user">USER → AI</span>
+      <div class="toggle" id="modeToggle" onclick="toggleMode()">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="toggle-label" id="label-auto">AI ↔ AI</span>
+      <div class="auto-rounds" id="autoRoundsCtrl">
+        <label>Rounds</label>
+        <input type="range" id="roundsSlider" min="1" max="10" value="3" oninput="updateRoundDisplay()">
+        <span class="round-val" id="roundDisplay">3</span>
       </div>
     </div>
   </div>
-  <div class="column" id="col-1">
-    <div class="messages" id="msgs-1">
-      <div class="empty-state">
-        <div>
-          <p>Model B 의 응답이 여기에 표시됩니다</p>
-          <p class="hint">⚙ Settings 에서 모델을 설정하세요</p>
+
+  <!-- BOT PANELS -->
+  <div class="panels-area">
+    <div class="bot-panel">
+      <div class="panel-header">
+        <div class="panel-header-left">
+          <span class="bot-index">01</span>
+          <div>
+            <div class="bot-name">Alpha</div>
+            <div class="bot-role">Strategist</div>
+          </div>
         </div>
+        <div class="status-dot" id="dot-0"></div>
       </div>
+      <div class="messages" id="msgs-0"></div>
     </div>
-  </div>
-  <div class="column" id="col-2">
-    <div class="messages" id="msgs-2">
-      <div class="empty-state">
-        <div>
-          <p>Model C 의 응답이 여기에 표시됩니다</p>
-          <p class="hint">⚙ Settings 에서 모델을 설정하세요</p>
+    <div class="bot-panel">
+      <div class="panel-header">
+        <div class="panel-header-left">
+          <span class="bot-index">02</span>
+          <div>
+            <div class="bot-name">Beta</div>
+            <div class="bot-role">Analyst</div>
+          </div>
         </div>
+        <div class="status-dot" id="dot-1"></div>
       </div>
+      <div class="messages" id="msgs-1"></div>
+    </div>
+    <div class="bot-panel">
+      <div class="panel-header">
+        <div class="panel-header-left">
+          <span class="bot-index">03</span>
+          <div>
+            <div class="bot-name">Gamma</div>
+            <div class="bot-role">Engineer</div>
+          </div>
+        </div>
+        <div class="status-dot" id="dot-2"></div>
+      </div>
+      <div class="messages" id="msgs-2"></div>
     </div>
   </div>
-</div>
 
-<div class="input-area">
-  <div class="input-row">
-    <textarea id="user-input" placeholder="메시지를 입력하세요… (Enter 전송, Shift+Enter 줄바꿈)" rows="1"></textarea>
-    <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
+  <!-- USER MODE INPUT -->
+  <div class="global-input-bar" id="userInputBar">
+    <textarea class="global-textarea" id="userInput"
+      placeholder="메시지 입력 — Alpha · Beta · Gamma 3개 AI에 동시 전송됩니다..."
+      rows="1" onkeydown="handleKey(event)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendUserMessage()">Send →</button>
   </div>
-  <div class="input-hint">3개 모델에 동시 전송 · 응답은 개별 스트리밍</div>
-</div>
 
-<!-- Settings Modal -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <h2>모델 설정</h2>
-    <p class="modal-sub">OpenAI API Key와 fine-tuned 모델 ID를 입력하세요.</p>
-
-    <div class="api-key-section">
-      <h3>🔑 API Key</h3>
-      <label>OpenAI API Key</label>
-      <input type="password" id="cfg-apikey" placeholder="sk-..." />
+  <!-- AUTO MODE CONTROLS -->
+  <div class="auto-control-bar hidden" id="autoControlBar">
+    <div class="seed-input-wrap">
+      <label>Seed Topic</label>
+      <textarea class="seed-textarea" id="seedInput"
+        placeholder="AI들이 토론할 주제를 입력하세요..." rows="1"></textarea>
     </div>
-
-    <div class="model-config">
-      <h3><span style="color:var(--model-1)">●</span> Model A</h3>
-      <label>Display Name</label>
-      <input type="text" id="cfg-name-0" placeholder="예: GPT-4o Creative" />
-      <label>Model ID</label>
-      <input type="text" id="cfg-model-0" placeholder="예: ft:gpt-4o-mini:my-org::abc123" />
-      <label>System Prompt (선택)</label>
-      <input type="text" id="cfg-sys-0" placeholder="예: You are a helpful assistant." />
-    </div>
-
-    <div class="model-config">
-      <h3><span style="color:var(--model-2)">●</span> Model B</h3>
-      <label>Display Name</label>
-      <input type="text" id="cfg-name-1" placeholder="예: GPT-4o Precise" />
-      <label>Model ID</label>
-      <input type="text" id="cfg-model-1" placeholder="예: ft:gpt-4o-mini:my-org::def456" />
-      <label>System Prompt (선택)</label>
-      <input type="text" id="cfg-sys-1" placeholder="예: You are a precise analyst." />
-    </div>
-
-    <div class="model-config">
-      <h3><span style="color:var(--model-3)">●</span> Model C</h3>
-      <label>Display Name</label>
-      <input type="text" id="cfg-name-2" placeholder="예: GPT-4o Coder" />
-      <label>Model ID</label>
-      <input type="text" id="cfg-model-2" placeholder="예: ft:gpt-4o-mini:my-org::ghi789" />
-      <label>System Prompt (선택)</label>
-      <input type="text" id="cfg-sys-2" placeholder="예: You are an expert coder." />
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSettings()">취소</button>
-      <button class="btn-save" onclick="saveSettings()">저장</button>
+    <div class="auto-btns">
+      <button class="auto-stop-btn" id="autoStopBtn" onclick="stopAutoChat()">■ Stop</button>
+      <button class="auto-start-btn" id="autoStartBtn" onclick="startAutoChat()">▶ Start Auto</button>
     </div>
   </div>
-</div>
+</main>
 
 <script>
-// ── State ──
-const CONFIG_KEY = 'triplemind_config';
-let config = {
-  apiKey: '',
-  models: [
-    { name: 'Model A', modelId: '', systemPrompt: '' },
-    { name: 'Model B', modelId: '', systemPrompt: '' },
-    { name: 'Model C', modelId: '', systemPrompt: '' },
-  ]
-};
-let conversationHistories = [[], [], []]; // per-model message histories
-let isLoading = false;
+// ──────────────────────────────────────────────
+//  TRIAD — Client JS
+//  API 키 없음. 모든 AI 호출은 /api/chat 프록시를 통해 이루어집니다.
+// ──────────────────────────────────────────────
 
-// ── Init ──
-function init() {
-  const saved = localStorage.getItem(CONFIG_KEY);
-  if (saved) {
-    try {
-      config = JSON.parse(saved);
-      updateLabels();
-    } catch (e) {}
-  }
-  setupTextarea();
-}
+const BOT_NAMES = ['Alpha', 'Beta', 'Gamma'];
+let conversations  = [[], [], []];
+let isAutoMode     = false;
+let autoStopped    = false;
+let totalAutoRounds = 3;
+let currentRound   = 0;
 
-function updateLabels() {
-  const labels = ['label-a', 'label-b', 'label-c'];
-  const ids = ['id-a', 'id-b', 'id-c'];
-  config.models.forEach((m, i) => {
-    document.getElementById(labels[i]).textContent = m.name || `Model ${String.fromCharCode(65+i)}`;
-    document.getElementById(ids[i]).textContent = m.modelId ? m.modelId.slice(0, 24) + '…' : 'not configured';
-  });
-}
-
-// ── Settings ──
-function openSettings() {
-  document.getElementById('cfg-apikey').value = config.apiKey;
-  config.models.forEach((m, i) => {
-    document.getElementById(`cfg-name-${i}`).value = m.name;
-    document.getElementById(`cfg-model-${i}`).value = m.modelId;
-    document.getElementById(`cfg-sys-${i}`).value = m.systemPrompt;
-  });
-  document.getElementById('modal').classList.add('open');
-}
-
-function closeSettings() {
-  document.getElementById('modal').classList.remove('open');
-}
-
-function saveSettings() {
-  config.apiKey = document.getElementById('cfg-apikey').value.trim();
-  for (let i = 0; i < 3; i++) {
-    config.models[i] = {
-      name: document.getElementById(`cfg-name-${i}`).value.trim() || `Model ${String.fromCharCode(65+i)}`,
-      modelId: document.getElementById(`cfg-model-${i}`).value.trim(),
-      systemPrompt: document.getElementById(`cfg-sys-${i}`).value.trim(),
-    };
-  }
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-  updateLabels();
-  closeSettings();
-}
-
-// ── Textarea ──
-function setupTextarea() {
-  const ta = document.getElementById('user-input');
-  ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-  ta.addEventListener('input', () => {
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
-  });
-}
-
-// ── Messaging ──
-function clearEmptyStates() {
-  document.querySelectorAll('.empty-state').forEach(el => el.remove());
-}
-
-function addMessage(colIndex, role, text) {
-  const container = document.getElementById(`msgs-${colIndex}`);
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.innerHTML = formatMessage(text);
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
-
-function addTyping(colIndex) {
-  const container = document.getElementById(`msgs-${colIndex}`);
-  const div = document.createElement('div');
-  div.className = 'typing';
-  div.id = `typing-${colIndex}`;
-  div.innerHTML = '<span></span><span></span><span></span>';
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
-
-function removeTyping(colIndex) {
-  const el = document.getElementById(`typing-${colIndex}`);
-  if (el) el.remove();
-}
-
-function formatMessage(text) {
-  // Basic markdown: code blocks, inline code, bold, italic
-  let html = text
-    .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>');
-  return html;
-}
-
-async function sendMessage() {
-  const ta = document.getElementById('user-input');
-  const text = ta.value.trim();
-  if (!text || isLoading) return;
-
-  if (!config.apiKey) {
-    openSettings();
-    return;
-  }
-
-  clearEmptyStates();
-  isLoading = true;
-  document.getElementById('send-btn').disabled = true;
-  ta.value = '';
-  ta.style.height = 'auto';
-
-  // Add user message to all columns
-  for (let i = 0; i < 3; i++) {
-    addMessage(i, 'user', text);
-    conversationHistories[i].push({ role: 'user', content: text });
-  }
-
-  // Fire all 3 requests in parallel
-  const promises = config.models.map((model, i) => {
-    if (!model.modelId) {
-      return Promise.resolve({ index: i, error: '모델 ID가 설정되지 않았습니다. ⚙ Settings에서 설정해주세요.' });
-    }
-    addTyping(i);
-    return callOpenAI(i, model, text);
-  });
-
-  const results = await Promise.allSettled(promises);
-
-  results.forEach((result, i) => {
-    removeTyping(i);
-    if (result.status === 'fulfilled') {
-      const r = result.value;
-      if (r.error) {
-        addMessage(i, 'assistant', `⚠ ${r.error}`);
-      } else {
-        addMessage(i, 'assistant', r.text);
-        conversationHistories[i].push({ role: 'assistant', content: r.text });
-      }
-    } else {
-      addMessage(i, 'assistant', `⚠ 요청 실패: ${result.reason}`);
-    }
-  });
-
-  isLoading = false;
-  document.getElementById('send-btn').disabled = false;
-  document.getElementById('user-input').focus();
-}
-
-async function callOpenAI(index, model, userText) {
-  const messages = [];
-
-  if (model.systemPrompt) {
-    messages.push({ role: 'system', content: model.systemPrompt });
-  }
-
-  // Include conversation history for context
-  messages.push(...conversationHistories[index]);
+// ── PROXY API CALL ──────────────────────────────
+// 브라우저 → /api/chat (내 서버) → OpenAI
+// API 키는 서버에만 존재하며 이 파일에 없습니다.
+async function callBot(panelIdx, history) {
+  setDot(panelIdx, 'thinking');
+  const thinking = addThinking(panelIdx);
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: model.modelId,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2048,
+        botIndex: panelIdx,
+        messages: history.map(m => ({ role: m.role, content: m.content })),
       }),
     });
 
+    thinking.remove();
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      return { index, error: err.error?.message || `HTTP ${res.status}` };
+      addErrorMsg(panelIdx, `Error ${res.status}: ${err.error || res.statusText}`);
+      setDot(panelIdx, '');
+      return null;
     }
 
     const data = await res.json();
-    const text = data.choices?.[0]?.message?.content || '(응답 없음)';
-    return { index, text };
+    const reply = data.reply || '';
+
+    conversations[panelIdx].push({ role: 'assistant', content: reply });
+    addMsg(panelIdx, 'assistant', reply);
+    setDot(panelIdx, 'ready');
+    return reply;
+
   } catch (e) {
-    return { index, error: e.message };
+    thinking.remove();
+    addErrorMsg(panelIdx, `Network error: ${e.message}`);
+    setDot(panelIdx, '');
+    return null;
   }
 }
 
-// ── Boot ──
-init();
-</script>
+// ── MODE TOGGLE ─────────────────────────────────
+function toggleMode() {
+  isAutoMode = !isAutoMode;
+  document.getElementById('modeToggle').classList.toggle('on', isAutoMode);
+  document.getElementById('label-user').classList.toggle('active', !isAutoMode);
+  document.getElementById('label-auto').classList.toggle('active', isAutoMode);
+  document.getElementById('modeValueLabel').textContent = isAutoMode ? 'AI Auto Chat' : 'User Chat';
+  document.getElementById('modeTag').textContent        = isAutoMode ? 'AI ↔ AI' : 'USER ↔ AI';
+  document.getElementById('userInputBar').classList.toggle('hidden', isAutoMode);
+  document.getElementById('autoControlBar').classList.toggle('hidden', !isAutoMode);
+  document.getElementById('autoRoundsCtrl').classList.toggle('show', isAutoMode);
+}
 
+function updateRoundDisplay() {
+  const v = document.getElementById('roundsSlider').value;
+  document.getElementById('roundDisplay').textContent = v;
+  totalAutoRounds = parseInt(v);
+}
+
+// ── USER CHAT MODE ───────────────────────────────
+async function sendUserMessage() {
+  const input = document.getElementById('userInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = '';
+  document.getElementById('sendBtn').disabled = true;
+
+  for (let i = 0; i < 3; i++) {
+    conversations[i].push({ role: 'user', content: text });
+    addMsg(i, 'user', text);
+  }
+  await Promise.all([0, 1, 2].map(i => callBot(i, conversations[i])));
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); }
+}
+
+// ── AUTO CHAT MODE ───────────────────────────────
+async function startAutoChat() {
+  const seed = document.getElementById('seedInput').value.trim();
+  if (!seed) { document.getElementById('seedInput').focus(); return; }
+
+  totalAutoRounds = parseInt(document.getElementById('roundsSlider').value);
+  autoStopped = false; currentRound = 0;
+
+  document.getElementById('autoStartBtn').disabled = true;
+  document.getElementById('autoStopBtn').classList.add('show');
+  document.getElementById('roundBadge').classList.add('show');
+
+  // 초기화
+  conversations = [[], [], []];
+  [0,1,2].forEach(i => { document.getElementById(`msgs-${i}`).innerHTML = ''; });
+  [0,1,2].forEach(i => addSystemMsg(i, `// Auto Chat 시작 — ${totalAutoRounds} rounds`));
+
+  // Seed → 3봇 동시 응답
+  for (let i = 0; i < 3; i++) {
+    conversations[i].push({ role: 'user', content: seed });
+    addMsg(i, 'user', seed);
+  }
+  await Promise.all([0,1,2].map(i => callBot(i, conversations[i])));
+  if (autoStopped) { endAutoChat(); return; }
+
+  // 라운드: 각 봇이 나머지 2봇의 최신 답변을 읽고 응답
+  for (let round = 0; round < totalAutoRounds; round++) {
+    if (autoStopped) break;
+    currentRound = round + 1;
+    document.getElementById('roundBadge').textContent = `ROUND ${currentRound}/${totalAutoRounds}`;
+    [0,1,2].forEach(i => addSystemMsg(i, `// Round ${currentRound}`));
+
+    const latest = [0,1,2].map(i => conversations[i].at(-1)?.content || '');
+
+    // 각 봇이 받을 메시지: 자신 제외 나머지 2봇의 발언
+    const prompts = [
+      `[${BOT_NAMES[1]}]: ${latest[1]}\n\n[${BOT_NAMES[2]}]: ${latest[2]}`,
+      `[${BOT_NAMES[0]}]: ${latest[0]}\n\n[${BOT_NAMES[2]}]: ${latest[2]}`,
+      `[${BOT_NAMES[0]}]: ${latest[0]}\n\n[${BOT_NAMES[1]}]: ${latest[1]}`,
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      conversations[i].push({ role: 'user', content: prompts[i] });
+      addMsg(i, 'user', prompts[i]);
+    }
+    await Promise.all([0,1,2].map(i => callBot(i, conversations[i])));
+    if (!autoStopped) await sleep(300);
+  }
+  endAutoChat();
+}
+
+function stopAutoChat() { autoStopped = true; }
+function endAutoChat() {
+  document.getElementById('autoStartBtn').disabled = false;
+  document.getElementById('autoStopBtn').classList.remove('show');
+  [0,1,2].forEach(i => addSystemMsg(i, '// Session 종료'));
+}
+
+// ── UI HELPERS ───────────────────────────────────
+function addMsg(idx, role, text) {
+  const c = document.getElementById(`msgs-${idx}`);
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+  d.innerHTML = `<div class="msg-role">${role === 'user' ? 'You' : BOT_NAMES[idx]}</div>
+    <div class="msg-body">${esc(text)}</div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function addSystemMsg(idx, text) {
+  const c = document.getElementById(`msgs-${idx}`);
+  const d = document.createElement('div');
+  d.className = 'msg system';
+  d.innerHTML = `<div class="msg-body">${esc(text)}</div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function addErrorMsg(idx, text) {
+  const c = document.getElementById(`msgs-${idx}`);
+  const d = document.createElement('div');
+  d.className = 'msg error';
+  d.innerHTML = `<div class="msg-role">Error</div><div class="msg-body">${esc(text)}</div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function addThinking(idx) {
+  const c = document.getElementById(`msgs-${idx}`);
+  const d = document.createElement('div');
+  d.className = 'msg assistant thinking-msg';
+  d.innerHTML = `<div class="msg-body"><span class="dots"><span></span><span></span><span></span></span></div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+  return d;
+}
+function setDot(idx, state) {
+  document.getElementById(`dot-${idx}`).className = `status-dot ${state}`;
+}
+function esc(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── TEXTAREA AUTO-RESIZE ─────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  [document.getElementById('userInput'), document.getElementById('seedInput')].forEach(el => {
+    el.addEventListener('input', () => {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    });
+  });
+});
+</script>
 </body>
 </html>

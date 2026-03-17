@@ -1,56 +1,52 @@
-# TripleMind — Multi-Model Chat
+# TRIAD — Triple AI Console
 
-3개의 ChatGPT fine-tuned 모델과 동시에 대화하는 챗봇 서비스입니다.
+3개의 AI와 동시에 채팅하거나, AI끼리 자동으로 대화하는 콘솔입니다.
 
-## 🚀 Vercel 배포 방법
+## 파일 구조
 
-### 1. GitHub에 Push
+```
+triad/
+├── index.html        ← 프론트엔드 (API 키 없음)
+├── api/
+│   └── chat.js       ← 서버 프록시 (API 키는 여기서만 사용)
+├── vercel.json       ← Vercel 설정
+├── .env.example      ← 환경변수 템플릿 (실제 키 없음)
+├── .gitignore        ← .env를 커밋에서 제외
+└── README.md
+```
+
+## 보안 구조
+
+```
+브라우저 (index.html)
+    ↓  POST /api/chat  (메시지만 전달, 키 없음)
+내 서버 (api/chat.js)
+    ↓  OpenAI API Key는 Vercel 환경변수에서만 읽음
+OpenAI API
+```
+
+## 배포 방법
+
+### 1. GitHub에 올리기
 ```bash
 git init
-git add .
-git commit -m "initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/triplemind.git
+git add index.html api/ vercel.json .gitignore
+# ⚠ .env는 절대 add 하지 마세요!
+git commit -m "init"
+git remote add origin https://github.com/YOUR_USERNAME/triad.git
 git push -u origin main
 ```
 
-### 2. Vercel 배포
-1. [vercel.com](https://vercel.com)에 로그인
-2. "Add New Project" 클릭
-3. GitHub 레포 선택
-4. Framework: `Other` 선택
-5. Deploy 클릭 — 끝!
+### 2. Vercel 환경변수 설정
+Vercel 대시보드 → 프로젝트 → **Settings → Environment Variables**
 
-### 또는 CLI로 배포
-```bash
-npm i -g vercel
-vercel
-```
+| Key              | Value                        |
+|------------------|------------------------------|
+| `OPENAI_API_KEY` | `sk-...` (실제 키 입력)       |
+| `BOT1_SYSTEM`    | (선택) Alpha 시스템 프롬프트   |
+| `BOT2_SYSTEM`    | (선택) Beta 시스템 프롬프트    |
+| `BOT3_SYSTEM`    | (선택) Gamma 시스템 프롬프트   |
 
-## ⚙ 사용법
-
-1. 배포된 사이트에 접속
-2. 우측 상단 **⚙ Settings** 클릭
-3. OpenAI API Key 입력
-4. 3개 모델의 이름과 Model ID 입력
-   - 예: `ft:gpt-4o-mini:my-org::abc123`
-5. 저장 후 채팅 시작!
-
-## 🏗 구조
-
-```
-├── index.html      # 전체 앱 (HTML + CSS + JS)
-├── vercel.json     # Vercel 배포 설정
-└── README.md       # 이 파일
-```
-
-## 💡 특징
-
-- **3-Column Layout**: 한 번에 3개 모델의 응답을 비교
-- **대화 기록 유지**: 각 모델별 독립적인 conversation history
-- **System Prompt**: 모델별 시스템 프롬프트 설정 가능
-- **반응형 디자인**: 모바일에서도 사용 가능
-- **클라이언트 사이드 only**: 서버 불필요, API Key는 브라우저에만 저장
-
-## ⚠ 보안 참고
-
-API Key는 `localStorage`에 저장됩니다. 프로덕션 환경에서는 서버 사이드 프록시를 통해 API Key를 보호하는 것을 권장합니다.
+### 3. 배포
+Vercel이 자동으로 빌드하고 배포합니다.
+API Key는 Vercel 서버에만 존재하며, 클라이언트(브라우저)에 절대 노출되지 않습니다.
