@@ -35,9 +35,9 @@ export default async function handler(req, res) {
 
   // ── 봇별 모델명 (환경변수에서 읽기 — 클라이언트에 노출 안 됨) ──
   const botModels = [
-    process.env.BOT1_MODEL || 'gpt-4o',
-    process.env.BOT2_MODEL || 'gpt-4o',
-    process.env.BOT3_MODEL || 'gpt-4o',
+    process.env.BOT1_MODEL || 'gpt-4.1-nano',
+    process.env.BOT2_MODEL || 'gpt-4.1-nano',
+    process.env.BOT3_MODEL || 'gpt-4.1-nano',
   ];
   const model = botModels[botIndex] ?? botModels[0];
 
