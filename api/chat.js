@@ -1,19 +1,8 @@
 /**
  * /api/chat.js  — Vercel Serverless Function (Node.js)
- *
- * 브라우저는 이 엔드포인트(/api/chat)만 호출합니다.
- * OpenAI API Key와 모델명은 Vercel 환경변수에만 존재하며, 클라이언트에 절대 노출되지 않습니다.
- *
- * Vercel 대시보드 설정:
- *   Project → Settings → Environment Variables
- *   OPENAI_API_KEY = sk-...
- *   BOT1_MODEL     = ft:gpt-4o-mini:your-org:model-name:id   (fine-tuned 모델명)
- *   BOT2_MODEL     = ft:gpt-4o-mini:your-org:model-name:id
- *   BOT3_MODEL     = ft:gpt-4o-mini:your-org:model-name:id
  */
 
 export default async function handler(req, res) {
-  // ── CORS: 같은 origin만 허용 ──
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -21,19 +10,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── 환경변수에서 API Key 읽기 (클라이언트에 절대 전달 안 함) ──
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'Server: OPENAI_API_KEY가 설정되지 않았습니다. Vercel 환경변수를 확인하세요.' });
+    return res.status(500).json({ error: 'Server: OPENAI_API_KEY가 설정되지 않았습니다.' });
   }
 
-  // ── 요청 파싱 ──
   const { messages, botIndex } = req.body || {};
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages 배열이 필요합니다.' });
   }
 
-  // ── 봇별 모델명 (환경변수에서 읽기 — 클라이언트에 노출 안 됨) ──
   const botModels = [
     process.env.BOT1_MODEL || 'gpt-4.1-nano',
     process.env.BOT2_MODEL || 'gpt-4.1-nano',
@@ -41,27 +27,42 @@ export default async function handler(req, res) {
   ];
   const model = botModels[botIndex] ?? botModels[0];
 
+  // ── [DEBUG] Vercel → Functions → Logs 에서 확인 (해결 후 삭제)
+  console.log('=== [DEBUG] /api/chat called ===');
+  console.log('[DEBUG] botIndex         :', botIndex);
+  console.log('[DEBUG] model selected   :', model);
+  console.log('[DEBUG] BOT1_MODEL env   :', process.env.BOT1_MODEL ? '✅ SET' : '❌ NOT SET');
+  console.log('[DEBUG] BOT2_MODEL env   :', process.env.BOT2_MODEL ? '✅ SET' : '❌ NOT SET');
+  console.log('[DEBUG] BOT3_MODEL env   :', process.env.BOT3_MODEL ? '✅ SET' : '❌ NOT SET');
+  console.log('[DEBUG] messages count   :', messages.length);
+  console.log('[DEBUG] messages payload :', JSON.stringify(messages));
+
   if (!model) {
     return res.status(500).json({ error: `BOT${botIndex + 1}_MODEL 환경변수가 설정되지 않았습니다.` });
   }
 
-  // ── OpenAI API 호출 ──
+  const MAX_MESSAGES = 4;
+  const trimmedMessages = messages.length > MAX_MESSAGES
+    ? messages.slice(-MAX_MESSAGES)
+    : messages;
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,   // ← 키는 여기서만 사용
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model,           // ← fine-tuned 모델명 (환경변수에서만 읽음)
+        model,
         max_tokens: 1024,
-        messages,        // ← fine-tuned 모델은 보통 system 프롬프트 불필요
+        messages: trimmedMessages,
       }),
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
+      console.log('[DEBUG] OpenAI error:', response.status, err?.error?.message);
       return res.status(response.status).json({
         error: err?.error?.message || `OpenAI error ${response.status}`,
       });
@@ -70,7 +71,8 @@ export default async function handler(req, res) {
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || '';
 
-    // ── 클라이언트에는 답변 텍스트만 반환 ──
+    console.log('[DEBUG] reply preview  :', reply.slice(0, 150));
+
     return res.status(200).json({ reply });
 
   } catch (err) {
